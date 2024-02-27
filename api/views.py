@@ -517,7 +517,7 @@ def oauth2callback(request):
     creator.credentials=credentials_dict
     creator.save()
 
-    print(creator.credentials_json)
+    # print(creator.credentials)
     
     return redirect(settings.REDIRECT_URI)
 
