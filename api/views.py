@@ -418,7 +418,7 @@ def send_email(creator,editor,video_url,video):
     emailMessage.attach(email_html_part)
 
     try:
-        creds = Credentials(token=creator.credentials['access_token'])
+        creds = Credentials(token=creator.credentials['token'])
         service = build('gmail','v1',credentials=creds)
         raw_email_message = base64.urlsafe_b64encode(emailMessage.as_bytes()).decode()
 
@@ -445,11 +445,11 @@ def send_email(creator,editor,video_url,video):
 
         response = requests.post(token_url,headers=headers,data=data)
 
-        creator.credentials['access_token'] = response.json()['access_token']
+        creator.credentials['token'] = response.json()['access_token']
 
         creator.save()
 
-        creds = Credentials(token=creator.credentials['access_token'])
+        creds = Credentials(token=creator.credentials['token'])
         service = build('gmail','v1',credentials=creds)
         raw_email_message = base64.urlsafe_b64encode(emailMessage.as_bytes()).decode()
 
