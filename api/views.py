@@ -277,6 +277,7 @@ class VideoView(APIView):
                 editor = request.user
                 video_url = video.cloudinary_id
                 video = video
+                print('1')
                     
                 try:
                     res = send_email(creator,editor,video_url,video)
@@ -292,6 +293,8 @@ class VideoView(APIView):
                     relative_path = os.path.join('media',video.video_file.name)
 
                     video_file = os.path.join(base_dir,relative_path)
+
+                    print(video_file)
 
                     video.delete()
 
