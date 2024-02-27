@@ -608,7 +608,7 @@ def upload_to_youtube(request):
 def youtube_upload_2(user):
 
     creator = CustomUser.objects.filter(email=user).first()
-    creds = Credentials(token=creator.credentials['access_token'])
+    creds = Credentials(token=creator.credentials['token'])
     service = build('youtube','v3',credentials=creds)
 
     video = Video.objects.filter(user=creator).first()
@@ -691,7 +691,7 @@ def youtube_upload_2(user):
 
         response = requests.post(token_url,headers=headers,data=data)
 
-        creator.credentials['access_token'] = response.json()['access_token']
+        creator.credentials['token'] = response.json()['access_token']
 
         creator.save()
 
