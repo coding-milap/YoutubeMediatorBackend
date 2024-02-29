@@ -337,7 +337,7 @@ def send_email(creator,editor,video_url,video):
 
     emailMessage["From"] = "patelmilap89@gmail.com"
 
-    # emailMessage["To"] = creator.email
+    emailMessage["To"] = creator.email
 
     email_text_part = MIMEText(f"Hey {creator.full_name},Hope you doi'n well. This is a Confirmation Email for a Video upload to your Youtube Channel from {editor.full_name}.","plain")
 
