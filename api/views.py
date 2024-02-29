@@ -257,25 +257,26 @@ class VideoView(APIView):
             
                 video = Video.objects.filter(id=video.id).first()
 
-                response = cloudinary_upload(video,request.FILES['video_file'])
+                # response = cloudinary_upload(video,request.FILES['video_file'])
 
-                if not response:
+                # if not response:
                         
-                        base_dir = settings.BASE_DIR
+                #         base_dir = settings.BASE_DIR
 
-                        relative_path = os.path.join('media',video.video_file.name)
+                #         relative_path = os.path.join('media',video.video_file.name)
 
-                        video_file = os.path.join(base_dir,relative_path)
+                #         video_file = os.path.join(base_dir,relative_path)
 
-                        video.delete()
+                #         video.delete()
 
-                        os.remove(video_file)
+                #         os.remove(video_file)
                         
-                        return Response({'msg':"Video is not Uploaded."})
+                #         return Response({'msg':"Video is not Uploaded."})
 
                 creator = video.user
                 editor = request.user
-                video_url = video.cloudinary_id
+                # video_url = video.cloudinary_id
+                video_url = video.video_file
                 video = video
                 print('1')
                     
