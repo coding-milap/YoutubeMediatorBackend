@@ -390,7 +390,7 @@ def send_email(creator,editor,video_url,video):
                                 </li>
                                 
                                 <li style="margin-top:20px;">
-                                <span style="font-weight:bold">Video URL</span>  : <a id="video-link" href={video_url} style="text-decoration:none; color: #3949AB;" >Video Link</a>
+                                <span style="font-weight:bold">Video URL</span>  : <a id="video-link" href=https://youtubemediatorbackend.onrender.com/{video_url} style="text-decoration:none; color: #3949AB;" >Video Link</a>
                                 </li>
 
                                 <div style="margin-top:20px;">
