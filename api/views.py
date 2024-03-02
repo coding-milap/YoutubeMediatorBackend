@@ -607,14 +607,17 @@ def upload_to_youtube(request):
 
 
 def youtube_upload_2(user):
+    print('1')
 
     creator = CustomUser.objects.filter(email=user).first()
     creds = Credentials(token=creator.credentials['token'])
     service = build('youtube','v3',credentials=creds)
+    print('2')
 
     video = Video.objects.filter(user=creator).first()
 
     if not video:
+        print("hello")
         return
 
     base_dir = settings.BASE_DIR
