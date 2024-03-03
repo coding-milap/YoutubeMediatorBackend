@@ -389,9 +389,9 @@ def send_email(creator,editor,video_url,video):
                                 <span style="font-weight:bold">Video Privacy Status</span>  : {video.privacy_status}
                                 </li>
                                 
-                                <li style="margin-top:20px;">
-                                <span style="font-weight:bold">Video URL</span>  : <a id="video-link" href=https://youtubemediatorbackend.onrender.com/{video_url} style="text-decoration:none; color: #3949AB;" >Video Link</a>
-                                </li>
+                                # <li style="margin-top:20px;">
+                                # <span style="font-weight:bold">Video URL</span>  : <a id="video-link" href=https://youtubemediatorbackend.onrender.com/{video_url} style="text-decoration:none; color: #3949AB;" >Video Link</a>
+                                # </li>
 
                                 <div style="margin-top:20px;">
                                     <a href={settings.REDIRECT_URI}/confirmation-page style="background-color: #04AA6D;
