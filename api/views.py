@@ -265,6 +265,8 @@ class VideoView(APIView):
 
                 youtube_upload_thread.start()
 
+                Response({'msg': "Upload Started"})
+
             except:
                 pass
     
