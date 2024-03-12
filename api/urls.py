@@ -22,6 +22,6 @@ urlpatterns = [
     path('video-details/',views.video_details,name="video-details"),
     path('cancel-upload/',views.cancel_upload,name="cancel-upload"),
     # path('youtube-upload/',views.youtube_upload,name="youtube-upload"),
-    path('youtube-upload-2/',views.upload_to_youtube,name="youtube-upload-2")
+    # path('youtube-upload-2/',views.upload_to_youtube,name="youtube-upload-2")
     
 ]

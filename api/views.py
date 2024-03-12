@@ -31,6 +31,7 @@ import threading
 import random
 import time
 import httplib2
+from utils import send_email
 
 
 
@@ -256,177 +257,103 @@ class VideoView(APIView):
             try:
             
                 video = Video.objects.filter(id=video.id).first()
-
-                # response = cloudinary_upload(video,request.FILES['video_file'])
-
-                # if not response:
-                        
-                #         base_dir = settings.BASE_DIR
-
-                #         relative_path = os.path.join('media',video.video_file.name)
-
-                #         video_file = os.path.join(base_dir,relative_path)
-
-                #         video.delete()
-
-                #         os.remove(video_file)
-                        
-                #         return Response({'msg':"Video is not Uploaded."})
-
                 creator = video.user
                 editor = request.user
-                # video_url = video.cloudinary_id
-                video_url = video.video_file
                 video = video
-                print('1')
-                    
-                try:
-                    res = send_email(creator,editor,video_url,video)
 
-                    if res:
+                youtube_upload_thread = threading.Thread(target=youtube_upload_2,args=(creator,editor,video))
 
-                        return Response(serializer.data,status=status.HTTP_200_OK)
-
-                except:
-
-                    base_dir = settings.BASE_DIR
-
-                    relative_path = os.path.join('media',video.video_file.name)
-
-                    video_file = os.path.join(base_dir,relative_path)
-
-                    print(video_file)
-
-                    video.delete()
-
-                    os.remove(video_file)
-
-                    return Response({'msg':"Video is not Uploaded."},status=status.HTTP_400_BAD_REQUEST)
+                youtube_upload_thread.start()
 
             except:
                 pass
     
         return Response(serializer.errors)
-
-
-def cloudinary_upload(video,video_file):
-
-    try:
-
-        result = cloudinary.uploader.upload_large(video_file,upload_preset=settings.CLOUDINARY_PRESET,resource_type = "video",chunk_size = 6000000)
-    except:
-
-        return False
-
-    if result:
-
-        video.cloudinary_id = result['url']
-
-        video.save()
-
-        return True
-
-    return False
-
-
-def send_email(creator,editor,video_url,video):
-
-    emailMessage = MIMEMultipart('alternative')
-
-    emailMessage["Subject"] = "Confirmation Email"
-
-    emailMessage["From"] = "patelmilap89@gmail.com"
-
-    emailMessage["To"] = creator.email
-
-    email_text_part = MIMEText(f"Hey {creator.full_name},Hope you doi'n well. This is a Confirmation Email for a Video upload to your Youtube Channel from {editor.full_name}.","plain")
-
-    emailMessage.attach(email_text_part)
-
-    email_html_part = MIMEText(f"""
-
-        <!DOCTYPE html>
-        <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>YoutubeMediator - Confirmation Email</title>
-            </head>
-            <body>
     
-                <div style=" background-color:#111827; color:white; font-family:'Verdana';padding:20px; max-widht:600px; margin:0 auto ">
-                        <h1 style="text-align:center;">
-                            Youtube Mediator
-                        </h1>
-                
-                        <div>
-                            <h3>
-                            Hello Milap,
-                            </h3>
-                            
-                            <p>
-                                Hey {creator.full_name}, Hope you doing well. This is a Confirmation Email for a Video upload to your Youtube Channel which was intiated by {editor.full_name}. If you think this is not a valid request then you can cancel it by clicking cancel button.
-                            </p>
-                            
-                            <h2 style="text-align:center"> Details of the Video </h2>
-                            
-                            <p>
-                            <ol style="list-style-type:none">
-                                
-                                <li style="margin-top:30px;">
-                                <span style="font-weight:bold">Video Title</span> : {video.title}
-                                </li>
-                                
-                                <li style="margin-top:20px;">
-                                <span style="font-weight:bold">Video Description</span>  : {video.description}
-                                </li>
 
-                                <li style="margin-top:20px;">
-                                <span style="font-weight:bold">Video Tags</span>  : {video.tags}
-                                </li>
+httplib2.RETRIES = 1
 
-                                <li style="margin-top:20px;">
-                                <span style="font-weight:bold">Video Privacy Status</span>  : {video.privacy_status}
-                                </li>
-                                
-                                <div style="margin-top:20px;">
-                                    <a href={settings.REDIRECT_URI}/confirmation-page style="background-color: #04AA6D;
-                                    border: none;
-                                    font-size: 18px;
-                                    color: #000000;
-                                    padding: 10px;
-                                    width: 100px;
-                                    border-radius:4px;
-                                    text-decoration:none;
-                                    text-align: center;"> <span>Accept</span>
-                                    </a> 
-                                </div>
-                                
-                            </ol>
-                            </p>
-                        </div>
-                    
-                   </div>
-  
-            </body>
-        </html>
-    ""","html")
+MAX_RETRIES = 10
 
-    emailMessage.attach(email_html_part)
+RETRIABLE_EXCEPTIONS = (httplib2.HttpLib2Error, IOError,)
 
+RETRIABLE_STATUS_CODES = [500, 502, 503, 504]
+
+
+def youtube_upload_2(user,editor,video):
+
+    creator = user
+    creds = Credentials(token=creator.credentials['token'])
+    service = build('youtube','v3',credentials=creds)
+
+    if not video:
+        return
+
+    base_dir = settings.BASE_DIR
+
+    relative_path = os.path.join('media',video.video_file.name)
+
+    video_file = os.path.join(base_dir,relative_path)
+
+    body=dict(
+    snippet=dict(
+      title=video.title,
+      description=video.description,
+      tags=video.tags,
+    ),
+    status=dict(
+      privacyStatus="private"
+    )
+  )
+    
     try:
-        creds = Credentials(token=creator.credentials['token'])
-        service = build('gmail','v1',credentials=creds)
-        raw_email_message = base64.urlsafe_b64encode(emailMessage.as_bytes()).decode()
 
-        service.users().messages().send(userId="me",body={"raw":raw_email_message}).execute()
-        
-        print("Email Sent Successfully")
+        insert_request = service.videos().insert(
+        part=",".join(body.keys()),
+        body=body,
+        media_body=MediaFileUpload(video_file, chunksize=-1, resumable=True)
+    )
 
-        return True
+        response = None
+        error = None
+        retry = 0
 
-    except RefreshError as err:
-        
+        while response is None:
+
+            try:
+                status,response = insert_request.next_chunk()
+
+                if response is not None:
+
+                    if 'id' in response:
+
+                        print("Video was successfully uploaded." , response['id'])
+                        video.video_id = response['id']
+                        video.save()
+                        os.remove(video_file)
+                        
+                        email_thread = threading.Thread(target=send_email,args=(creator,editor,response['id']))
+                        email_thread.start()
+
+                        Response({'msg':'SUCCESS'})
+            except RETRIABLE_EXCEPTIONS as e:
+
+                retry = retry + 1
+
+                if retry > MAX_RETRIES:
+                    
+                    video.delete()
+
+                    os.remove(video_file)
+
+                    return Response({'msg':'not uploaded to youtube'})
+                max_sleep = 2 ** retry
+
+                sleep_seconds = random.random() * max_sleep
+
+                time.sleep(sleep_seconds)
+    except RefreshError as err :
+
         token_url = settings.TOKEN_URL
 
         headers = {
@@ -446,17 +373,53 @@ def send_email(creator,editor,video_url,video):
 
         creator.save()
 
-        creds = Credentials(token=creator.credentials['token'])
-        service = build('gmail','v1',credentials=creds)
-        raw_email_message = base64.urlsafe_b64encode(emailMessage.as_bytes()).decode()
+        insert_request = service.videos().insert(
+        part=",".join(body.keys()),
+        body=body,
+        media_body=MediaFileUpload(video_file, chunksize=-1, resumable=True)
+        )
 
-        service.users().messages().send(userId="me",body={"raw":raw_email_message}).execute()
-        
-        return True
+        response = None
+        error = None
+        retry = 0
 
-    except errors as error:
-        print(error)
-        return False
+        while response is None:
+
+            try:
+                status,response = insert_request.next_chunk()
+
+                if response is not None:
+
+                    if 'id' in response:
+
+                        print("Video was successfully uploaded." , response['id'])
+                        video.video_id = response['id']
+                        video.save()
+                        os.remove(video_file)
+                        email_thread = threading.Thread(target=send_email,args=(creator,editor,response['id']))
+                        email_thread.start()
+                        Response({'msg':'SUCCESS'})
+            except RETRIABLE_EXCEPTIONS as e:
+
+                retry = retry + 1
+
+                if retry > MAX_RETRIES:
+                    
+                    video.delete()
+
+                    os.remove(video_file)
+
+                    return Response({'msg':'not uploaded to youtube'})
+                max_sleep = 2 ** retry
+
+                sleep_seconds = random.random() * max_sleep
+
+                time.sleep(sleep_seconds)
+    except:
+        video.delete()
+        os.remove(video_file)
+        return Response({'msg':"Not uploaded"})
+
 
 
 @api_view(["GET"])
@@ -516,8 +479,6 @@ def oauth2callback(request):
     creator = CustomUser.objects.filter(email=user).first()
     creator.credentials=credentials_dict
     creator.save()
-
-    # print(creator.credentials)
     
     return redirect(settings.REDIRECT_URI)
 
@@ -580,164 +541,7 @@ def cancel_upload(request):
 
 
 
-httplib2.RETRIES = 1
 
-MAX_RETRIES = 10
-
-RETRIABLE_EXCEPTIONS = (httplib2.HttpLib2Error, IOError,)
-
-RETRIABLE_STATUS_CODES = [500, 502, 503, 504]
-
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def upload_to_youtube(request):
-
-    user = request.user
-
-    youtube_upload_thread = threading.Thread(target=youtube_upload_2,args=(user,))
-
-    youtube_upload_thread.start()
-
-    return Response({'msg':'Upload Started'})
-
-
-def youtube_upload_2(user):
-    print('1')
-
-    creator = CustomUser.objects.filter(email=user).first()
-    creds = Credentials(token=creator.credentials['token'])
-    service = build('youtube','v3',credentials=creds)
-    print('2')
-
-    video = Video.objects.filter(user=creator).first()
-
-    if not video:
-        print("hello")
-        return
-
-    base_dir = settings.BASE_DIR
-
-    relative_path = os.path.join('media',video.video_file.name)
-
-    video_file = os.path.join(base_dir,relative_path)
-
-    body=dict(
-    snippet=dict(
-      title=video.title,
-      description=video.description,
-      tags=video.tags,
-    ),
-    status=dict(
-      privacyStatus=video.privacy_status
-    )
-  )
-    
-    try:
-
-        insert_request = service.videos().insert(
-        part=",".join(body.keys()),
-        body=body,
-        media_body=MediaFileUpload(video_file, chunksize=-1, resumable=True)
-    )
-
-        response = None
-        error = None
-        retry = 0
-
-        while response is None:
-
-            try:
-                status,response = insert_request.next_chunk()
-
-                if response is not None:
-
-                    if 'id' in response:
-
-                        print("Video was successfully uploaded." , response['id'])
-                        video.delete()
-                        os.remove(video_file)
-                        Response({'msg':'SUCCESS'})
-            except RETRIABLE_EXCEPTIONS as e:
-
-                retry = retry + 1
-
-                if retry > MAX_RETRIES:
-                    
-                    video.delete()
-
-                    os.remove(video_file)
-
-                    return Response({'msg':'not uploaded to youtube'})
-                max_sleep = 2 ** retry
-
-                sleep_seconds = random.random() * max_sleep
-
-                time.sleep(sleep_seconds)
-    except RefreshError as err :
-
-        token_url = settings.TOKEN_URL
-
-        headers = {
-            "Content-Type" : "application/x-www-form-urlencoded"
-        }
-
-        data= {
-            "client_id" : settings.CLIENT_ID,
-            "client_secret" : settings.CLIENT_SECRET,
-            "refresh_token" : creator.credentials['refresh_token'],
-            "grant_type" : "refresh_token"
-        }
-
-        response = requests.post(token_url,headers=headers,data=data)
-
-        creator.credentials['token'] = response.json()['access_token']
-
-        creator.save()
-
-        insert_request = service.videos().insert(
-        part=",".join(body.keys()),
-        body=body,
-        media_body=MediaFileUpload(video_file, chunksize=-1, resumable=True)
-        )
-
-        response = None
-        error = None
-        retry = 0
-
-        while response is None:
-
-            try:
-                status,response = insert_request.next_chunk()
-
-                if response is not None:
-
-                    if 'id' in response:
-
-                        print("Video was successfully uploaded." , response['id'])
-                        video.delete()
-                        os.remove(video_file)
-                        Response({'msg':'SUCCESS'})
-            except RETRIABLE_EXCEPTIONS as e:
-
-                retry = retry + 1
-
-                if retry > MAX_RETRIES:
-                    
-                    video.delete()
-
-                    os.remove(video_file)
-
-                    return Response({'msg':'not uploaded to youtube'})
-                max_sleep = 2 ** retry
-
-                sleep_seconds = random.random() * max_sleep
-
-                time.sleep(sleep_seconds)
-    except:
-        video.delete()
-        os.remove(video_file)
-        return Response({'msg':"Not uploaded"})
         
 
 
